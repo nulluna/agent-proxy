@@ -119,6 +119,24 @@ describe('handleProxyRequest', () => {
     expect(await response.text()).toBe('prefixed')
   })
 
+  it('restores encoded relay host segments and nested path segments into the upstream URL', async () => {
+    const fetchSpy = vi.fn(async (request: Request) => {
+      expect(request.url).toBe('https://example.com:8443/v1/chat/completions?trace=1')
+
+      return new Response('restored', { status: 200 })
+    })
+
+    const response = await handleProxyRequest(
+      createRequest('/relay/relay-secret/s/example.com%3A8443/v1/chat/completions?trace=1'),
+      createEnv(),
+      fetchSpy,
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe('restored')
+    expect(fetchSpy).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects missing authorities without reaching the upstream', async () => {
     const fetchSpy = vi.fn()
 
